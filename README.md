@@ -34,6 +34,7 @@ A comprehensive, curated guide covering core JavaScript concepts, advanced mecha
   - [Why The Event Loop Exists](#why-the-event-loop-exists)
   - [Queue Priority & Execution Order](#queue-priority--execution-order)
 - [Promises](#-promises)
+  - [Promise States & Terminology](#promise-states--terminology)
   - [Promise.all](#1-promiseall)
   - [Promise.allSettled](#2-promiseallsettled)
   - [Promise.race](#3-promiserace)
@@ -395,6 +396,70 @@ When the Call Stack is empty, the Event Loop processes queues in the following o
 ## 🤝 Promises
 
 A **Promise** is an object representing the eventual completion or failure of an asynchronous operation. It acts as a placeholder for a value that is not yet available.
+
+### Promise States & Terminology
+
+Understanding the differences between Promise states, events, and actions is essential to master asynchronous JavaScript.
+
+| Concept | Term | Definition / Behavior |
+| :--- | :--- | :--- |
+| **State** | **Pending** | The initial, ongoing state of the promise. It is neither resolved nor rejected. |
+| **State** | **Fulfilled** | The promise completed **successfully**. It now has a permanent resolved value. |
+| **State** | **Rejected** | The promise failed with an **error**. It now has a permanent rejection reason (Error). |
+| **State** | **Settled** | A general term meaning the promise has finished its journey (is either **Fulfilled** or **Rejected**). |
+| **Action** | **Resolve** | Moves the promise to a resolved status. If resolved with a primitive/object, it becomes **Fulfilled**. If resolved with *another promise*, it waits for that promise to settle. |
+| **Action** | **Reject** | Moves the promise directly to the **Rejected** state. |
+| **Outcome** | **Success** | The conceptual result of a task succeeding. Translates to the **Fulfilled** state. |
+| **Outcome** | **Failure** | The conceptual result of a task failing. Translates to the **Rejected** state. |
+
+---
+
+#### 🔍 Promise Resolution vs. Fulfillment
+> [!NOTE]
+> Resolving a promise is **not** exactly the same as fulfilling it:
+> - Calling `resolve(123)` **fulfills** the promise with the value `123`.
+> - Calling `resolve(otherPromise)` keeps the promise **pending** until `otherPromise` is either fulfilled or rejected.
+
+---
+
+#### ⚠️ AggregateError: Deep Dive & Logging
+
+An **`AggregateError`** is a special error subclass thrown exclusively by **`Promise.any()`** when **every** promise in the given array rejects (fails).
+
+##### Scenario
+You attempt to fetch backup sources from three different servers in parallel:
+- Server A fails in 1s.
+- Server B fails in 2s.
+- Server C fails in 3s.
+Since no servers succeeded, `Promise.any` throws an `AggregateError` at `t = 3s`.
+
+##### How to Log an `AggregateError`
+An `AggregateError` contains a special built-in `.errors` property, which is an array containing all individual error objects. Here is how you log them effectively:
+
+```javascript
+const p1 = Promise.reject(new Error("Server A Down!"));
+const p2 = Promise.reject(new Error("Server B Down!"));
+
+Promise.any([p1, p2])
+  .catch((err) => {
+    // 1. Log the main error message
+    console.error("Main Error Name:", err.name);       // "AggregateError"
+    console.error("Main Error Message:", err.message); // "All promises were rejected"
+
+    // 2. Extract and log individual error messages
+    console.log("Individual Errors Array:", err.errors); 
+    // [ Error: Server A Down!, Error: Server B Down! ]
+
+    // 3. Loop through errors to log individual messages (Ideal for error reporting)
+    err.errors.forEach((singleErr, index) => {
+      console.warn(`Error #${index + 1}: ${singleErr.message}`);
+      // Error #1: Server A Down!
+      // Error #2: Server B Down!
+    });
+  });
+```
+
+---
 
 ### Core Methods:
 
