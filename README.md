@@ -485,7 +485,67 @@ Because `Promise.all` is "fail-fast":
 
 
 #### 2. `Promise.allSettled`
-Runs multiple promises in parallel. Unlike `Promise.all`, it **never rejects** due to a single promise failing. It waits for all of them to settle (either resolve or reject) and returns an array of objects detailing the status and outcome of each promise.
+
+##### 🛑 The Negatives of `Promise.all` (Why we need `Promise.allSettled`)
+While `Promise.all` is powerful, its "fail-fast" behavior introduces critical downsides in real-world applications:
+1. **Total Loss of Data:** If you are fetching data from 5 different APIs and 4 succeed but 1 fails, `Promise.all` immediately rejects. You lose access to the 4 successful API responses, forcing you to treat the entire operation as a complete failure.
+2. **Ignorant Execution:** You have no way of knowing which tasks succeeded and which failed because the `.catch()` block only receives the error from the *first* promise that rejected.
+3. **No Partial Successes:** There is no straightforward way to collect the "good" data and handle/log the "bad" data individually.
+
+##### 💡 How `Promise.allSettled` Solves This
+`Promise.allSettled()` was introduced in ES2020 to overcome these limitations:
+
+- **Resilient Execution:** It **never rejects**. The returned promise always resolves, regardless of how many individual promises fail.
+- **Complete Insight:** It waits for **every** promise to settle (either resolve or reject).
+- **Standardized Output Structure:** It returns an array of objects, with one object per promise, describing its final outcome:
+  - For successful promises: `{ status: "fulfilled", value: resultValue }`
+  - For rejected promises: `{ status: "rejected", reason: errorReason }`
+
+##### 🧪 Example: Collecting Successes & Handling Failures
+Let's see how `Promise.allSettled` behaves in a scenario where one promise fails:
+
+```javascript
+const p1 = new Promise((resolve) => setTimeout(() => resolve("Data from API 1"), 3000));
+const p2 = new Promise((_, reject) => setTimeout(() => reject(new Error("API 2 Down!")), 1000));
+const p3 = new Promise((resolve) => setTimeout(() => resolve("Data from API 3"), 2000));
+
+const start = Date.now();
+
+Promise.allSettled([p1, p2, p3])
+  .then((results) => {
+    console.log(`Completed in: ${(Date.now() - start) / 1000}s`); 
+    // Completed in: ~3s (Waits for all of them!)
+
+    console.log("Full Results:", results);
+    /* Output:
+    [
+      { status: "fulfilled", value: "Data from API 1" },
+      { status: "rejected", reason: Error: API 2 Down! },
+      { status: "fulfilled", value: "Data from API 3" }
+    ]
+    */
+
+    // We can easily filter out the successful results:
+    const successfulResponses = results
+      .filter(res => res.status === "fulfilled")
+      .map(res => res.value);
+
+    console.log("Successful API Data:", successfulResponses);
+    // ["Data from API 1", "Data from API 3"]
+
+    // And log the errors individually:
+    results
+      .filter(res => res.status === "rejected")
+      .forEach(err => console.error("Logged Error:", err.reason.message));
+      // Logged Error: API 2 Down!
+  });
+```
+
+> [!TIP]
+> **When to use which?**
+> - Use **`Promise.all`** when your operations are **interdependent** (e.g., you need all datasets or none at all; if one fails, the rest are useless).
+> - Use **`Promise.allSettled`** when your operations are **independent** (e.g., loading different dashboard widgets, where one widget failing shouldn't break the entire dashboard).
+
 
 #### 3. Race Conditions
 A race condition occurs when multiple concurrent asynchronous operations depend on which one finishes first, which can lead to unpredictable behavior if not handled correctly.
