@@ -392,9 +392,66 @@ When the Call Stack is empty, the Event Loop processes queues in the following o
 A **Promise** is an object representing the eventual completion or failure of an asynchronous operation. It acts as a placeholder for a value that is not yet available.
 
 ### Core Methods:
-- **`Promise.all`**: Runs multiple promises in parallel. Rejects immediately if *any* promise rejects.
-- **`Promise.allSettled`**: Runs multiple promises in parallel. Waits for all of them to settle (either resolve or reject) and returns an array of results.
-- **Race conditions**: When two or more async operations run concurrently, and the behavior/correctness of the program depends on which completes first.
+
+#### 1. `Promise.all`
+`Promise.all()` is a helper method that takes an iterable of promises (usually an array) and returns a single Promise. This returned promise resolves when **all** of the input promises have resolved, or rejects immediately if **any** of the input promises reject.
+
+##### How It Works in Parallel (Concurrent Execution)
+In JavaScript, asynchronous tasks (such as network requests or timers) are offloaded to the browser APIs or Node.js background threads. When you invoke `Promise.all([p1, p2, p3])`, all these promises are initiated **simultaneously** at the exact same moment. They run concurrently in the background and do not block one another.
+
+##### 🧪 Scenario: The Slowest Promise Determines the Time
+Suppose you have three promises:
+1. **Promise 1 (`p1`)**: Resolves in **3 seconds**
+2. **Promise 2 (`p2`)**: Resolves in **1 second**
+3. **Promise 3 (`p3`)**: Resolves in **2 seconds**
+
+If you run them using `Promise.all([p1, p2, p3])`, the **total execution time will be 3 seconds**.
+
+###### Code Example
+```javascript
+const p1 = new Promise((resolve) => setTimeout(() => resolve("P1 (3s)"), 3000));
+const p2 = new Promise((resolve) => setTimeout(() => resolve("P2 (1s)"), 1000));
+const p3 = new Promise((resolve) => setTimeout(() => resolve("P3 (2s)"), 2000));
+
+const start = Date.now();
+
+Promise.all([p1, p2, p3])
+  .then((results) => {
+    console.log("Results:", results); // ["P1 (3s)", "P2 (1s)", "P3 (2s)"]
+    console.log(`Total time: ${(Date.now() - start) / 1000}s`); 
+    // Total time: ~3s (e.g. 3.002s)
+  })
+  .catch((error) => {
+    console.error("One of the promises failed:", error);
+  });
+```
+
+###### ⏳ Why does it take 3 seconds instead of 6 seconds (3 + 1 + 2)?
+Since these promises run in parallel, their timers tick down concurrently in the background:
+- **`t = 0s`**: All three promises are kicked off.
+- **`t = 1s`**: `p2` finishes and resolves. The other two are still running in the background.
+- **`t = 2s`**: `p3` finishes and resolves. `p1` is still running in the background.
+- **`t = 3s`**: `p1` (the slowest promise) finally resolves.
+- **Completion**: Since all promises have now resolved, `Promise.all` completes and returns the aggregated results array.
+
+```
+Timeline of Parallel Execution:
+t = 0s
+ ├─► p2 (1s) ───────────► Resolved (at t = 1s)
+ ├─► p3 (2s) ───────────────────────────► Resolved (at t = 2s)
+ └─► p1 (3s) ───────────────────────────────────────────────────► Resolved (at t = 3s)
+                                                                ▲
+                                                       Promise.all Resolves
+```
+
+> [!TIP]
+> **Summary Rule:** The total time taken by `Promise.all` for successfully resolving concurrent operations is always equal to the duration of the **slowest (maximum duration) promise** in the array.
+
+#### 2. `Promise.allSettled`
+Runs multiple promises in parallel. Unlike `Promise.all`, it **never rejects** due to a single promise failing. It waits for all of them to settle (either resolve or reject) and returns an array of objects detailing the status and outcome of each promise.
+
+#### 3. Race Conditions
+A race condition occurs when multiple concurrent asynchronous operations depend on which one finishes first, which can lead to unpredictable behavior if not handled correctly.
 
 ---
 
