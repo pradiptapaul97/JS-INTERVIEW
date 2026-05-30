@@ -447,6 +447,43 @@ t = 0s
 > [!TIP]
 > **Summary Rule:** The total time taken by `Promise.all` for successfully resolving concurrent operations is always equal to the duration of the **slowest (maximum duration) promise** in the array.
 
+##### ⚠️ Error Handling: What if one or multiple promises reject (error)?
+`Promise.all` employs a **"fail-fast" (short-circuiting)** behavior when it comes to errors:
+
+1. **Immediate Rejection:** As soon as **any** single promise rejects, the entire `Promise.all` rejects **immediately** with that promise's error. It does not wait for the remaining promises to finish or settle.
+2. **What happens to other running promises?** The other promises in the array that are still pending will continue executing in the background (JavaScript does not cancel them automatically), but their results or subsequent rejections will be completely ignored.
+3. **If multiple promises reject:** Only the error of the **first promise that rejects (chronologically)** will be returned and caught. Any subsequent failures from other promises are discarded.
+
+###### 🧪 Example: Failure Scenario
+Let's see what happens when `p2` rejects after 1 second:
+```javascript
+const p1 = new Promise((resolve) => setTimeout(() => resolve("P1 (3s)"), 3000));
+// p2 rejects after 1 second
+const p2 = new Promise((_, reject) => setTimeout(() => reject(new Error("P2 Failed! (1s)")), 1000));
+const p3 = new Promise((resolve) => setTimeout(() => resolve("P3 (2s)"), 2000));
+
+const start = Date.now();
+
+Promise.all([p1, p2, p3])
+  .then((results) => {
+    console.log("This will NOT run because p2 rejected");
+  })
+  .catch((error) => {
+    console.error("Caught error:", error.message); // Caught error: P2 Failed! (1s)
+    console.log(`Rejected after: ${(Date.now() - start) / 1000}s`); 
+    // Rejected after: ~1s
+  });
+```
+
+###### ⏳ Why did it reject in 1 second instead of 3 seconds?
+Because `Promise.all` is "fail-fast":
+- **`t = 0s`**: All three promises are kicked off.
+- **`t = 1s`**: `p2` rejects. `Promise.all` immediately terminates and throws the rejection to the `.catch` block. It doesn't wait for `p3` (at 2s) or `p1` (at 3s) to resolve.
+
+> [!WARNING]
+> Since the other promises keep running in the background, be careful of side effects! If those background promises write to a database or alter state, those actions will still complete even though `Promise.all` threw an error at the 1-second mark.
+
+
 #### 2. `Promise.allSettled`
 Runs multiple promises in parallel. Unlike `Promise.all`, it **never rejects** due to a single promise failing. It waits for all of them to settle (either resolve or reject) and returns an array of objects detailing the status and outcome of each promise.
 
