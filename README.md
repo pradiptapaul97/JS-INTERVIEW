@@ -14,6 +14,10 @@ A comprehensive, curated guide covering core JavaScript concepts, advanced mecha
   - [First Class Function](#first-class-function)
   - [Higher Order Function](#higher-order-function)
   - [Arrow Function](#arrow-function)
+- [The `this` Keyword](#-the-this-keyword)
+  - [Strict Mode vs. Non-Strict Mode](#strict-mode-vs-non-strict-mode-behavior)
+  - [Why window.x() behaves differently](#why-windowx-behaves-differently)
+  - [Explicit Binding: call(), apply(), and bind()](#explicit-binding-call-apply-and-bind)
 - [Block and Scope](#-block-and-scope)
   - [Shadowing](#shadowing)
 - [Currying](#-currying)
@@ -146,6 +150,119 @@ const addArrow = (a, b) => a + b;
 
 console.log(addArrow(5, 5)); // Outputs: 10
 ```
+
+---
+
+## 🎯 The `this` Keyword
+
+The behavior of the `this` keyword in JavaScript is highly dynamic and depends entirely on **how the function is called**, rather than where it is declared.
+
+### 🧪 Strict Mode vs. Non-Strict Mode Behavior
+Let's analyze this classic interview question:
+
+```javascript
+"use strict";
+
+function x() {
+  console.log(this);
+}
+
+x();        // Output: undefined
+window.x(); // Output: Window { ... }
+```
+
+#### 🔍 Why does `x()` output `undefined`?
+In JavaScript, when a standard function is invoked directly (e.g., `x()`), it is called with **no context**. 
+
+1. **In Non-Strict Mode:** JavaScript replaces an empty/undefined context with the global object by default (which is the `window` object in browsers, or `global` in Node.js). This is called the **default binding**.
+2. **In Strict Mode (`"use strict"`):** To prevent accidental modifications or access to the global scope, the default binding is disabled. If no context is provided, `this` remains strictly as it was invoked, which is `undefined`.
+
+---
+
+#### 🔍 Why does `window.x()` output the `Window` object in strict mode?
+This behavior comes down to **Implicit Binding**:
+
+1. **Global Attachment:** In standard browser JavaScript, functions declared in the global scope (like `function x()`) are automatically attached as methods to the global `window` object.
+2. **Method Invocation:** Calling `window.x()` invokes `x` as a method *on* the `window` object.
+3. **Implicit Context:** When a function is called as a method on an object (e.g., `object.method()`), the object to the left of the dot (`window`) is passed as the context (`this`). 
+4. Because context was **explicitly provided via the calling object**, strict mode has no default binding to override, so `this` successfully points to `window`.
+
+```
+Function Invocation Comparison:
+ x()          ──► No calling object ──► strict mode blocks window ──► undefined
+ window.x()   ──► Invoked on 'window' ──► Implicit binding active  ──► Window Object
+```
+
+---
+
+### 🛠️ Explicit Binding: `call()`, `apply()`, and `bind()`
+
+Sometimes, we need to bypass implicit binding and force a function to use a specific object as its `this` context. JavaScript provides three powerful methods for this: `call`, `apply`, and `bind`.
+
+#### 1. `call()`
+Invokes a function immediately, explicitly setting its `this` context to the first argument. Additional arguments are passed in one by one (comma-separated).
+
+##### Example
+```javascript
+const person1 = { firstName: "Pradipta", lastName: "Paul" };
+
+function greet(greeting, punctuation) {
+  console.log(`${greeting}, my name is ${this.firstName} ${this.lastName}${punctuation}`);
+}
+
+// Immediately executes:
+greet.call(person1, "Hello", "!"); 
+// Output: Hello, my name is Pradipta Paul!
+```
+
+---
+
+#### 2. `apply()`
+Works exactly like `call()`, invoking the function immediately and setting its `this` context to the first argument. However, any subsequent arguments are passed in as a **single array**.
+
+##### Example
+```javascript
+const person1 = { firstName: "Pradipta", lastName: "Paul" };
+
+function greet(greeting, punctuation) {
+  console.log(`${greeting}, my name is ${this.firstName} ${this.lastName}${punctuation}`);
+}
+
+// Immediately executes (arguments grouped in an array):
+greet.apply(person1, ["Hi", "."]); 
+// Output: Hi, my name is Pradipta Paul.
+```
+
+---
+
+#### 3. `bind()`
+Unlike `call` and `apply`, `bind()` **does not invoke the function immediately**. Instead, it returns a **brand new copy** of the original function with its `this` context permanently bound to the provided object. You can store it in a variable and execute it later.
+
+##### Example
+```javascript
+const person1 = { firstName: "Pradipta", lastName: "Paul" };
+
+function greet(greeting, punctuation) {
+  console.log(`${greeting}, my name is ${this.firstName} ${this.lastName}${punctuation}`);
+}
+
+// Returns a new bound function (does not execute yet):
+const boundGreet = greet.bind(person1, "Welcome");
+
+// Execute it later (passing remaining arguments if needed):
+boundGreet("!!!"); 
+// Output: Welcome, my name is Pradipta Paul!!!
+```
+
+---
+
+#### 📊 Quick Comparison
+
+| Method | Immediate Invocation? | Argument Format | Key Use Case |
+| :--- | :--- | :--- | :--- |
+| **`call`** | **Yes** | Individual (comma-separated) | Borrowing methods from other objects immediately. |
+| **`apply`** | **Yes** | Single Array | When arguments are already structured in an array (e.g. math functions). |
+| **`bind`** | **No** (Returns new function) | Individual (can be partially pre-applied) | Event handlers, React methods, or postponing execution with fixed context. |
 
 ---
 
