@@ -202,25 +202,27 @@ Sometimes, we need to bypass implicit binding and force a function to use a spec
 #### 1. `call()`
 Invokes a function immediately, explicitly setting its `this` context to the first argument. Additional arguments are passed in one by one (comma-separated).
 
-##### 🧪 Example: Method Borrowing
-Here, `student2` does not have its own `printName` method, but it "borrows" the method from `student` using `call()`:
+##### 🧪 Example: Method Borrowing with Arguments
+Here, `student2` does not have its own `printName` method, but it borrows the method from `student` and passes individual arguments:
 
 ```javascript
 const student = {
   name: "Pradipta",
-  printName: function () {
-    console.log(this.name);
+  printName: function (hometown, state) {
+    console.log(`${this.name} from ${hometown}, ${state}`);
   }
 };
 
-student.printName(); // Output: "Pradipta" (Implicit binding - 'this' is student)
+student.printName("Kolkata", "West Bengal"); 
+// Output: Pradipta from Kolkata, West Bengal (Implicit context: student)
 
 const student2 = {
   name: "Paul",
 };
 
-// student2 borrows printName. 'this' inside printName is explicitly set to student2:
-student.printName.call(student2); // Output: "Paul"
+// student2 borrows printName. Arguments are passed individually:
+student.printName.call(student2, "Kolkata", "West Bengal"); 
+// Output: Paul from Kolkata, West Bengal (Explicit context: student2)
 ```
 
 ---
@@ -259,17 +261,24 @@ testStrict.call(undefined); // Output: undefined (Preserved!)
 #### 2. `apply()`
 Works exactly like `call()`, invoking the function immediately and setting its `this` context to the first argument. However, any subsequent arguments are passed in as a **single array**.
 
-##### Example
+##### 🧪 Example: Method Borrowing with Arguments in an Array
+We use the exact same `student` and `student2` setup, but pass parameters bundled in a list:
+
 ```javascript
-const person1 = { firstName: "Pradipta", lastName: "Paul" };
+const student = {
+  name: "Pradipta",
+  printName: function (hometown, state) {
+    console.log(`${this.name} from ${hometown}, ${state}`);
+  }
+};
 
-function greet(greeting, punctuation) {
-  console.log(`${greeting}, my name is ${this.firstName} ${this.lastName}${punctuation}`);
-}
+const student2 = {
+  name: "Paul",
+};
 
-// Immediately executes (arguments grouped in an array):
-greet.apply(person1, ["Hi", "."]); 
-// Output: Hi, my name is Pradipta Paul.
+// student2 borrows printName. Arguments are passed as an array:
+student.printName.apply(student2, ["Kolkata", "West Bengal"]); 
+// Output: Paul from Kolkata, West Bengal
 ```
 
 ---
@@ -277,20 +286,29 @@ greet.apply(person1, ["Hi", "."]);
 #### 3. `bind()`
 Unlike `call` and `apply`, `bind()` **does not invoke the function immediately**. Instead, it returns a **brand new copy** of the original function with its `this` context permanently bound to the provided object. You can store it in a variable and execute it later.
 
-##### Example
+##### 🧪 Example: Method Binding for Postponed Execution
+Here we bind the `printName` method to `student2` along with its arguments, creating a new function called `printDetails` to run at a later time:
+
 ```javascript
-const person1 = { firstName: "Pradipta", lastName: "Paul" };
+const student = {
+  name: "Pradipta",
+  printName: function (hometown, state) {
+    console.log(`${this.name} from ${hometown}, ${state}`);
+  }
+};
 
-function greet(greeting, punctuation) {
-  console.log(`${greeting}, my name is ${this.firstName} ${this.lastName}${punctuation}`);
-}
+const student2 = {
+  name: "Paul",
+};
 
-// Returns a new bound function (does not execute yet):
-const boundGreet = greet.bind(person1, "Welcome");
+// Returns a new bound copy of printName (does not execute yet):
+const printDetails = student.printName.bind(student2, "Kolkata", "West Bengal");
 
-// Execute it later (passing remaining arguments if needed):
-boundGreet("!!!"); 
-// Output: Welcome, my name is Pradipta Paul!!!
+// ... we can run other logic here ...
+
+// Execute it later:
+printDetails(); 
+// Output: Paul from Kolkata, West Bengal
 ```
 
 ---
