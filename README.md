@@ -37,7 +37,8 @@ A comprehensive, curated guide covering core JavaScript concepts, advanced mecha
   - [Promise.all](#1-promiseall)
   - [Promise.allSettled](#2-promiseallsettled)
   - [Promise.race](#3-promiserace)
-  - [Race Conditions](#4-race-conditions)
+  - [Promise.any](#4-promiseany)
+  - [Race Conditions](#5-race-conditions)
 - [Async / Await in JavaScript](#-async--await-in-javascript)
   - [Understanding How Async/Await Works](#understanding-how-asyncawait-works)
   - [Difference between Async/Await and Promise Chaining](#difference-between-asyncawait-and-promise-chaining)
@@ -607,7 +608,67 @@ t = 0s
 
 ---
 
-#### 4. Race Conditions
+#### 4. `Promise.any`
+`Promise.any()` was introduced in ES2021. It takes an iterable of promises and returns a single Promise. This returned promise resolves as soon as **any of the input promises resolves successfully (fulfills)**. It completely ignores rejections (errors) unless **every single promise** fails.
+
+> [!IMPORTANT]
+> **The Golden Rule of `Promise.any`:** The first promise to **succeed** wins. If a promise rejects early, it is simply ignored and the engine waits for the next one to succeed.
+
+##### 🧪 Scenario 1: First Success Wins (Ignoring Faster Errors)
+If a fast promise rejects but a slower promise resolves successfully, `Promise.any` resolves with the successful value.
+
+###### Code Example
+```javascript
+const p1 = new Promise((_, reject) => setTimeout(() => reject(new Error("Fast Failure (1s)")), 1000));
+const p2 = new Promise((resolve) => setTimeout(() => resolve("Slower Success (2s)"), 2000));
+
+Promise.any([p1, p2])
+  .then((value) => {
+    console.log("Resolved with:", value); // "Resolved with: Slower Success (2s)"
+  })
+  .catch((error) => {
+    console.error("This catch block will NOT execute");
+  });
+```
+
+```
+Timeline (First Success Wins):
+t = 0s
+ ├─► p1 (1s) ───────────► Rejected (at t = 1s) ◄── Ignored! (Because it's a failure)
+ └─► p2 (2s) ───────────────────────────► Resolved (at t = 2s) ◄── Winner (Resolves Promise.any)
+```
+
+##### 🧪 Scenario 2: All Promises Reject (AggregateError)
+If **all** input promises fail, `Promise.any` rejects with an **`AggregateError`**, which is a special error object containing an `errors` array holding all the individual rejection reasons.
+
+###### Code Example
+```javascript
+const p1 = new Promise((_, reject) => setTimeout(() => reject(new Error("Error A (1s)")), 1000));
+const p2 = new Promise((_, reject) => setTimeout(() => reject(new Error("Error B (2s)")), 2000));
+
+Promise.any([p1, p2])
+  .then((value) => {
+    console.log("This will NOT run");
+  })
+  .catch((err) => {
+    console.error("Caught:", err.name); // "Caught: AggregateError"
+    console.log("All Errors:", err.errors.map(e => e.message)); 
+    // ["Error A (1s)", "Error B (2s)"]
+  });
+```
+
+```
+Timeline (All Reject):
+t = 0s
+ ├─► p1 (1s) ───────────► Rejected (at t = 1s)
+ └─► p2 (2s) ───────────────────────────► Rejected (at t = 2s)
+                                         ▲
+                              AggregateError thrown (at t = 2s)
+```
+
+---
+
+#### 5. Race Conditions
 A race condition in programming is an undesirable situation that occurs when a system's substantive behavior is dependent on the sequence or timing of uncontrollable events (like network latency). In JavaScript, it often occurs when two concurrent async requests are made, and you incorrectly assume the order in which they will return.
 
 
