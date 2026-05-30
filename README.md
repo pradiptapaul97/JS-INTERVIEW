@@ -422,6 +422,19 @@ Understanding the differences between Promise states, events, and actions is ess
 
 ---
 
+#### 🎯 How the Core Promise Methods Settle
+
+Here is a quick-reference guide on how the four core Promise methods settle, what value/error they return, and when they transition to **Fulfilled** vs. **Rejected**.
+
+| Promise Method | Settle Condition (Fulfills / Success) | Settle Condition (Rejects / Failure) | Returned Value (On Fulfillment) | Returned Error (On Rejection) |
+| :--- | :--- | :--- | :--- | :--- |
+| **`Promise.all`** | When **ALL** input promises are successfully **fulfilled**. | When **ANY** single promise is **rejected**. | An **array** of all successful resolved values in the exact same input order. | The **exact error object** of the **first** promise that rejected (ignores all other results/errors). |
+| **`Promise.allSettled`** | **ALWAYS Fulfills**. It never rejects (always transitions to **fulfilled**). | **NEVER Rejects** under any normal promise execution. | An **array of objects** detailing the status and outcome: `[{status: "fulfilled", value}, {status: "rejected", reason}]`. | *None (does not reject).* |
+| **`Promise.race`** | When the **very first** promise that settles (ends) happens to be **fulfilled**. | When the **very first** promise that settles (ends) happens to be **rejected**. | The **value** of that first settling promise. | The **error reason** of that first settling promise. |
+| **`Promise.any`** | When **ANY single** promise is successfully **fulfilled**. It ignores all early failures. | When **ALL** input promises are **rejected**. | The **value** of the first promise that successfully completed. | An **`AggregateError`** grouping together all individual rejection errors inside `.errors`. |
+
+---
+
 #### ⚠️ AggregateError: Deep Dive & Logging
 
 An **`AggregateError`** is a special error subclass thrown exclusively by **`Promise.any()`** when **every** promise in the given array rejects (fails).
