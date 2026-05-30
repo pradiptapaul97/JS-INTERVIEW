@@ -34,6 +34,10 @@ A comprehensive, curated guide covering core JavaScript concepts, advanced mecha
   - [Why The Event Loop Exists](#why-the-event-loop-exists)
   - [Queue Priority & Execution Order](#queue-priority--execution-order)
 - [Promises](#-promises)
+  - [Promise.all](#1-promiseall)
+  - [Promise.allSettled](#2-promiseallsettled)
+  - [Promise.race](#3-promiserace)
+  - [Race Conditions](#4-race-conditions)
 - [Async / Await in JavaScript](#-async--await-in-javascript)
   - [Understanding How Async/Await Works](#understanding-how-asyncawait-works)
   - [Difference between Async/Await and Promise Chaining](#difference-between-asyncawait-and-promise-chaining)
@@ -547,8 +551,65 @@ Promise.allSettled([p1, p2, p3])
 > - Use **`Promise.allSettled`** when your operations are **independent** (e.g., loading different dashboard widgets, where one widget failing shouldn't break the entire dashboard).
 
 
-#### 3. Race Conditions
-A race condition occurs when multiple concurrent asynchronous operations depend on which one finishes first, which can lead to unpredictable behavior if not handled correctly.
+#### 3. `Promise.race`
+`Promise.race()` takes an iterable of promises and returns a single Promise. This returned promise settles (either resolves or rejects) **as soon as the very first promise in the input array settles**. 
+
+> [!IMPORTANT]
+> **The Golden Rule of `Promise.race`:** Whoever crosses the finish line first **wins**, regardless of whether they succeed (resolve) or fail (reject).
+
+##### 🧪 Scenario 1: Success Wins (Fastest Promise Resolves)
+If the fastest promise resolves successfully, `Promise.race` resolves with that value.
+
+###### Code Example
+```javascript
+const p1 = new Promise((resolve) => setTimeout(() => resolve("Fast Success (1s)"), 1000));
+const p2 = new Promise((_, reject) => setTimeout(() => reject(new Error("Slow Error (2s)")), 2000));
+
+Promise.race([p1, p2])
+  .then((value) => {
+    console.log("Resolved with:", value); // "Resolved with: Fast Success (1s)"
+  })
+  .catch((error) => {
+    console.error("This catch block will NOT execute");
+  });
+```
+
+```
+Timeline (Success Wins):
+t = 0s
+ ├─► p1 (1s) ───────────► Resolved (at t = 1s) ◄── Winner (Resolves Promise.race)
+ └─► p2 (2s) ───────────────────────────► Rejected (at t = 2s)
+```
+
+##### 🧪 Scenario 2: Failure Wins (Fastest Promise Rejects)
+If the fastest promise rejects/throws an error, `Promise.race` rejects immediately with that error.
+
+###### Code Example
+```javascript
+const p1 = new Promise((resolve) => setTimeout(() => resolve("Slow Success (2s)"), 2000));
+const p2 = new Promise((_, reject) => setTimeout(() => reject(new Error("Fast Error (1s)")), 1000));
+
+Promise.race([p1, p2])
+  .then((value) => {
+    console.log("This then block will NOT execute");
+  })
+  .catch((error) => {
+    console.error("Caught error:", error.message); // "Caught error: Fast Error (1s)"
+  });
+```
+
+```
+Timeline (Failure Wins):
+t = 0s
+ ├─► p2 (1s) ───────────► Rejected (at t = 1s) ◄── Winner (Rejects Promise.race)
+ └─► p1 (2s) ───────────────────────────► Resolved (at t = 2s)
+```
+
+---
+
+#### 4. Race Conditions
+A race condition in programming is an undesirable situation that occurs when a system's substantive behavior is dependent on the sequence or timing of uncontrollable events (like network latency). In JavaScript, it often occurs when two concurrent async requests are made, and you incorrectly assume the order in which they will return.
+
 
 ---
 
