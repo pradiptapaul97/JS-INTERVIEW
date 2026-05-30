@@ -18,6 +18,7 @@ A comprehensive, curated guide covering core JavaScript concepts, advanced mecha
   - [Strict Mode vs. Non-Strict Mode](#strict-mode-vs-non-strict-mode-behavior)
   - [Why window.x() behaves differently](#why-windowx-behaves-differently)
   - [Explicit Binding: call(), apply(), and bind()](#explicit-binding-call-apply-and-bind)
+  - [this inside Arrow Functions](#this-inside-arrow-functions)
 - [Block and Scope](#-block-and-scope)
   - [Shadowing](#shadowing)
 - [Currying](#-currying)
@@ -320,6 +321,89 @@ printDetails();
 | **`call`** | **Yes** | Individual (comma-separated) | Borrowing methods from other objects immediately. |
 | **`apply`** | **Yes** | Single Array | When arguments are already structured in an array (e.g. math functions). |
 | **`bind`** | **No** (Returns new function) | Individual (can be partially pre-applied) | Event handlers, React methods, or postponing execution with fixed context. |
+
+---
+
+### 🏹 `this` inside Arrow Functions
+
+Unlike traditional functions, **arrow functions do not have their own `this` binding**. 
+
+Instead, they inherit `this` from their **lexical scope** (the surrounding block or function context in which the arrow function was physically defined). 
+
+---
+
+#### 🛑 Problem: Traditional Functions Lose Context
+With regular functions, if you define a nested callback (such as inside a `setTimeout` or event listener), the function loses connection to its parent object and defaults to the global context:
+
+```javascript
+const student = {
+  name: "Pradipta",
+  printName: function () {
+    // Regular function callback
+    setTimeout(function () {
+      console.log(this.name); 
+    }, 1000);
+  }
+};
+
+student.printName(); 
+// Output after 1s: undefined 
+// (Why? setTimeout runs the function globally, so 'this' points to 'window')
+```
+
+---
+
+#### 💡 Solution: Arrow Functions Preserve Context Lexically
+Arrow functions do not bind a new `this`. They search outwards to their enclosing lexical environment (`printName`'s scope) and adopt its `this`:
+
+```javascript
+const student = {
+  name: "Pradipta",
+  printName: function () {
+    // Arrow function callback
+    setTimeout(() => {
+      console.log(this.name); 
+    }, 1000);
+  }
+};
+
+student.printName(); 
+// Output after 1s: "Pradipta" 
+// (Why? The arrow function inherits 'this' from the enclosing printName method, which is 'student')
+```
+
+---
+
+#### ⚠️ Gotcha: Declaring Methods Directly with Arrow Functions
+Because arrow functions inherit context from their outer environment, **never use them to write top-level object methods**. The surrounding scope of the object declaration is the global environment:
+
+```javascript
+const student = {
+  name: "Paul",
+  // printName is an arrow function:
+  printName: () => {
+    console.log(this.name); 
+  }
+};
+
+student.printName(); 
+// Output: undefined 
+// (Why? The outer scope of 'student' object is the global context, so 'this' points to 'window')
+```
+
+---
+
+#### ⚡ Arrow Functions and call/apply/bind
+Because arrow functions do not have their own `this` binding, invoking them using `.call()`, `.apply()`, or `.bind()` **has no effect**. The `this` context remains bound to its original lexical environment and cannot be modified:
+
+```javascript
+const printGlobal = () => console.log(this);
+
+const customObj = { name: "Pradipta" };
+
+printGlobal.call(customObj); 
+// Output: Window { ... } (The call was ignored; 'this' is still lexical global!)
+```
 
 ---
 
