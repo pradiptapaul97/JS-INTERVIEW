@@ -202,17 +202,56 @@ Sometimes, we need to bypass implicit binding and force a function to use a spec
 #### 1. `call()`
 Invokes a function immediately, explicitly setting its `this` context to the first argument. Additional arguments are passed in one by one (comma-separated).
 
-##### Example
+##### 🧪 Example: Method Borrowing
+Here, `student2` does not have its own `printName` method, but it "borrows" the method from `student` using `call()`:
+
 ```javascript
-const person1 = { firstName: "Pradipta", lastName: "Paul" };
+const student = {
+  name: "Pradipta",
+  printName: function () {
+    console.log(this.name);
+  }
+};
 
-function greet(greeting, punctuation) {
-  console.log(`${greeting}, my name is ${this.firstName} ${this.lastName}${punctuation}`);
+student.printName(); // Output: "Pradipta" (Implicit binding - 'this' is student)
+
+const student2 = {
+  name: "Paul",
+};
+
+// student2 borrows printName. 'this' inside printName is explicitly set to student2:
+student.printName.call(student2); // Output: "Paul"
+```
+
+---
+
+##### ⚠️ The `"use strict"` Impact on `call()` (and `apply()` / `bind()`)
+A classic interview question is: **"What happens if you pass `null` or `undefined` as the context to `call()`?"**
+
+The result depends entirely on whether **Strict Mode** is enabled:
+
+1. **In Non-Strict Mode:**
+   - If you pass `null` or `undefined` as the first argument, JavaScript silently coerces it to the global object (`window` in browser, `global` in Node.js).
+   - If you pass a primitive (like a string or number), it gets auto-boxed into its corresponding wrapper object (`String`, `Number`).
+2. **In Strict Mode (`"use strict"`):**
+   - **No coercion occurs.** `this` remains exactly what was passed (`null` or `undefined`).
+   - Primitives remain primitive values without being boxed.
+
+###### 🧪 Code Example:
+```javascript
+// --- NON-STRICT MODE ---
+function testNonStrict() {
+  console.log(this); 
 }
+testNonStrict.call(null); // Output: Window { ... } (Coerced!)
 
-// Immediately executes:
-greet.call(person1, "Hello", "!"); 
-// Output: Hello, my name is Pradipta Paul!
+// --- STRICT MODE ---
+function testStrict() {
+  "use strict";
+  console.log(this);
+}
+testStrict.call(null);      // Output: null (Preserved!)
+testStrict.call(undefined); // Output: undefined (Preserved!)
 ```
 
 ---
