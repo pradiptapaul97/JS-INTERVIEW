@@ -10,6 +10,7 @@ A curated, comprehensive guide covering essential web server architectures and h
 - [What security measures do you implement in a Node.js application?](#what-security-measures-do-you-implement-in-a-nodejs-application)
 - [How do you handle concurrent users in a Node.js application?](#how-do-you-handle-concurrent-users-in-a-nodejs-application)
 - [Cluster vs. Worker Threads vs. Child Process](#cluster-vs-worker-threads-vs-child-process)
+- [What is a Router in Node.js?](#what-is-a-router-in-nodejs)
 
 ---
 
@@ -513,4 +514,87 @@ if (isMainThread) {
   const result = computeFibonacci(workerData);
   parentPort.postMessage(result); // Return output to main thread
 }
+```
+
+---
+
+## What is a Router in Node.js?
+
+### Answer
+
+A **Router** is a design pattern and architectural component in web development that acts as a traffic controller for incoming HTTP requests. It maps an incoming request—specifically its **HTTP method** (e.g., `GET`, `POST`, `PUT`, `DELETE`) and its **URL pathname** (e.g., `/users`, `/orders/12`)—to a specific function, known as a **route handler** or **controller**.
+
+---
+
+### Why is it used in Node.js?
+
+1. **Decouples Request Handling:** It separates the raw network server setup from the business logic, keeping code clean and modular.
+2. **Encapsulates URL Logic:** It parses query strings, extracts dynamic parameters (e.g., `/users/:id`), and handles wildcard routes automatically.
+3. **Organizes Modular Apps (Express):** Frameworks provide modular routers (like `express.Router()`) to split routes into separate, dedicated files (e.g., `userRouter.js`, `productRouter.js`), acting as mini-applications.
+
+---
+
+### Raw Node.js Routing vs. Express.js Routing
+
+#### 1. The Raw Node.js Approach (Custom Dispatcher)
+Without a framework, developers must manually parse the URL and method, using `if/else` or `switch` blocks.
+
+```javascript
+const http = require("http");
+const url = require("url");
+
+const server = http.createServer((req, res) => {
+  const parsedUrl = url.parse(req.url, true);
+  const path = parsedUrl.pathname;
+  const method = req.method;
+
+  // Manual route routing
+  if (method === "GET" && path === "/users") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify([{ name: "Pradipta" }]));
+  } 
+  
+  if (method === "POST" && path === "/users") {
+    res.writeHead(201);
+    return res.end("User created successfully!");
+  }
+
+  // Fallback 404 Route
+  res.writeHead(404);
+  res.end("Route not found");
+});
+
+server.listen(3000);
+```
+
+#### 2. The Modular Express.js Approach (Scalable Routing)
+In large applications, Express simplifies this by offering a built-in `Router` class to group and modularize endpoints.
+
+```javascript
+// routes/userRoutes.js
+const express = require("express");
+const router = express.Router(); // Create a modular, isolated router instance
+
+// Define isolated user routes
+router.get("/", (req, res) => {
+  res.json([{ name: "Pradipta" }]);
+});
+
+router.post("/", (req, res) => {
+  res.status(201).send("User created successfully!");
+});
+
+module.exports = router;
+```
+
+```javascript
+// server.js (Main Application file)
+const express = require("express");
+const app = express();
+const userRouter = require("./routes/userRoutes");
+
+// Mount the modular router onto the '/users' namespace
+app.use("/users", userRouter);
+
+app.listen(3000);
 ```
