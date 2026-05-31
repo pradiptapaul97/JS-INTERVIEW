@@ -110,3 +110,148 @@ readStream.pipe(writeStream);
 - **Low memory usage**
 - **Faster processing**
 - **Built-in backpressure handling**
+
+---
+
+## 🛡️ What security measures do you implement in a Node.js application?
+
+### 1. Input Validation
+**Why:** To ensure incoming request parameters match strict formats before processing them, preventing buffer overflows, invalid values, or malicious code executions.
+**Implementation:** Use schema validators like **Joi**, **Zod**, or **express-validator**.
+```javascript
+const { body, validationResult } = require('express-validator');
+
+app.post('/user', 
+  body('email').isEmail().normalizeEmail(),
+  body('password').isLength({ min: 5 }),
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    // Proceed...
+  }
+);
+```
+
+### 2. Authentication & Authorization
+**Why:** Verification of identity (Authentication) and checking permissions (Authorization) prevents unauthenticated or privilege-escalation actions.
+**Implementation:** Use industry standards like **JWT (JSON Web Tokens)** or **Session Cookies** for authentication, and **RBAC (Role-Based Access Control)** for authorization. Always practice the principle of least privilege.
+
+### 3. Password Hashing
+**Why:** Storing passwords in plain text is a critical security failure. If a database is compromised, all user credentials are leaked.
+**Implementation:** Use cryptographic hashing algorithms with automatic salting, such as **bcrypt** or **argon2**.
+```javascript
+const bcrypt = require('bcrypt');
+
+// Hashing a password during signup
+const saltRounds = 12;
+const hashedPassword = await bcrypt.hash(plainTextPassword, saltRounds);
+
+// Comparing a password during login
+const isMatch = await bcrypt.compare(plainTextPassword, hashedPassword);
+```
+
+### 4. Use HTTPS
+**Why:** Protects data in transit from eavesdropping and Man-in-the-Middle (MitM) attacks by encrypting communications between the client and server.
+**Implementation:** Obtain SSL/TLS certificates (e.g. Let's Encrypt). Configure Node.js or reverse proxies (like Nginx) to redirect all standard HTTP traffic to HTTPS.
+
+### 5. Security Headers with Helmet
+**Why:** Browsers use certain HTTP response headers to control cross-site features and enable safety filters.
+**Implementation:** Use the **helmet** middleware to automatically configure secure HTTP headers (e.g., `Content-Security-Policy`, `X-Frame-Options`, `Strict-Transport-Security`).
+```javascript
+const helmet = require('helmet');
+app.use(helmet());
+```
+
+### 6. Prevent SQL Injection
+**Why:** SQL injection occurs when input text is concatenated directly into SQL queries, enabling attackers to execute arbitrary SQL commands.
+**Implementation:** Use parameterized queries, prepared statements, or modern Object-Relational Mappers (ORMs) like **Prisma** or **Sequelize**.
+```javascript
+// ❌ BAD: raw string concatenation
+const query = `SELECT * FROM users WHERE email = '${req.body.email}'`;
+
+// ✅ GOOD: Parameterized query (using pg module)
+const query = 'SELECT * FROM users WHERE email = $1';
+db.query(query, [req.body.email]);
+```
+
+### 7. Prevent NoSQL Injection
+**Why:** In MongoDB, query operators are defined as objects (e.g., `{ $ne: "" }`). If inputs aren't sanitized, attackers can pass object parameters instead of strings to bypass checks.
+**Implementation:** Sanitize query objects using middleware like **express-mongo-sanitize** or force input parameters to match strings.
+```javascript
+const mongoSanitize = require('express-mongo-sanitize');
+app.use(mongoSanitize()); // Strips out keys starting with "$" or containing "."
+```
+
+### 8. Rate Limiting
+**Why:** Restricting the rate of incoming requests from an IP address prevents Denial of Service (DoS) attacks, brute-force login attempts, and API scraping.
+**Implementation:** Use **express-rate-limit** or Redis-backed rate limiters for distributed environments.
+```javascript
+const rateLimit = require('express-rate-limit');
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
+```
+
+### 9. CORS Configuration
+**Why:** A wildcard Cross-Origin Resource Sharing policy (`Access-Control-Allow-Origin: *`) allows any malicious external website to access your API endpoints.
+**Implementation:** Use the **cors** library and restrict access exclusively to trusted whitelist domains.
+```javascript
+const cors = require('cors');
+
+const corsOptions = {
+  origin: ['https://trustedwebsite.com'],
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+```
+
+### 10. Secure Environment Variables
+**Why:** Hardcoding credentials, API keys, or private salts directly into codebase commits risks public leakages when pushing to repository hosters.
+**Implementation:** Store credentials in an external `.env` file loaded with **dotenv** or use dedicated cloud secret vaults (e.g. AWS Secrets Manager). Add `.env` to `.gitignore`.
+```javascript
+require('dotenv').config();
+const dbPassword = process.env.DB_PASSWORD;
+```
+
+### 11. Prevent XSS (Cross-Site Scripting)
+**Why:** XSS occurs when raw, unescaped user inputs are rendered directly in browsers, allowing attackers to execute malicious JavaScript scripts within users' sessions.
+**Implementation:** Sanitize and escape all output strings using tools like **DOMPurify** or **xss-filters**. Configure a strict Content Security Policy (CSP).
+
+### 12. Secure Cookies
+**Why:** If session identifier cookies are not properly secured, attackers can steal them via JavaScript (XSS) or send them over unencrypted connections.
+**Implementation:** Configure crucial security flags on session cookies:
+```javascript
+app.use(session({
+  cookie: {
+    httpOnly: true, // Prevents client-side scripts from reading the cookie
+    secure: true,   // Ensures cookie is sent only over HTTPS
+    sameSite: 'strict' // Mitigates Cross-Site Request Forgery (CSRF)
+  }
+}));
+```
+
+### 13. Dependency Security
+**Why:** Using third-party open-source packages from npm risks importing nested sub-dependencies with known vulnerabilities or malicious code.
+**Implementation:** Proactively run **`npm audit`** to scan for vulnerabilities, keep dependencies updated, and integrate automated monitoring tools like **Snyk** or **GitHub Dependabot**.
+
+### 14. Logging & Monitoring
+**Why:** Without audit logs, it is impossible to identify, trace, or recover from active breaches.
+**Implementation:** Use logging libraries like **winston** or **pino** to output structured logs.
+> [!CAUTION]
+> **Crucial Rule:** Never write highly sensitive data (e.g. passwords, credit card numbers, authorization tokens, or personally identifiable information) into log outputs.
+
+### 15. Protect Against DoS Attacks
+**Why:** Attackers can send massive JSON bodies or keep connections open indefinitely (Slowloris) to consume RAM and sockets, freezing your service.
+**Implementation:** Set size limits on incoming body parses and restrict request timeouts.
+```javascript
+// Restrict JSON payload size
+app.use(express.json({ limit: '10kb' }));
+
+// Restrict URL-encoded payload size
+app.use(express.urlencoded({ limit: '10kb', extended: true }));
+```
