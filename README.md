@@ -620,6 +620,8 @@ By passing a callback to a third-party library or external function, you hand ov
 
 ## 🔄 Event Loop in JavaScript
 
+![alt text](<Screenshot (132).png>)
+
 The **Event Loop** is a core engine mechanism that enables non-blocking, asynchronous execution in JavaScript, despite it being single-threaded. It continuously checks the Call Stack and queues to coordinate execution.
 
 ```
