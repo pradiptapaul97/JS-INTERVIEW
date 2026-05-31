@@ -6,7 +6,7 @@ A comprehensive, curated guide covering core JavaScript concepts, advanced mecha
 
 ## 📋 Table of Contents
 
-- [Function Types](#-function-types)
+- [Function Types](#function-types)
   - [Function Statement (Declaration)](#function-statement-declaration)
   - [Function Expression](#function-expression)
   - [Anonymous Function](#anonymous-function)
@@ -14,39 +14,39 @@ A comprehensive, curated guide covering core JavaScript concepts, advanced mecha
   - [First Class Function](#first-class-function)
   - [Higher Order Function](#higher-order-function)
   - [Arrow Function](#arrow-function)
-- [The `this` Keyword](#-the-this-keyword)
-  - [Strict Mode vs. Non-Strict Mode](#strict-mode-vs-non-strict-mode-behavior)
-  - [Why window.x() behaves differently](#why-windowx-behaves-differently)
+- [The `this` Keyword](#the-this-keyword)
+  - [Strict Mode vs. Non-Strict Mode Behavior](#strict-mode-vs-non-strict-mode-behavior)
+  - [Why `window.x()` behaves differently](#why-does-windowx-output-the-window-object-in-strict-mode)
   - [Explicit Binding: call(), apply(), and bind()](#explicit-binding-call-apply-and-bind)
   - [this inside Arrow Functions](#this-inside-arrow-functions)
-- [Block and Scope](#-block-and-scope)
+- [Block and Scope](#block-and-scope)
   - [Shadowing](#shadowing)
-- [Currying](#-currying)
-- [Closure](#-closure)
-- [Prototypes and Inheritance](#-prototypes-and-inheritance)
-- [Hoisting](#-hoisting)
-- [Temporal Dead Zone (TDZ)](#-temporal-dead-zone-tdz)
-- [Chaining Techniques](#-chaining-techniques)
+- [Currying](#currying)
+- [Closure](#closure)
+- [Prototypes and Inheritance](#prototypes-and-inheritance)
+- [Hoisting](#hoisting)
+- [Temporal Dead Zone (TDZ)](#temporal-dead-zone-tdz)
+- [Chaining Techniques](#chaining-techniques)
   - [Method Chaining](#method-chaining)
   - [Prototype Chaining](#prototype-chaining)
   - [Callback Chaining (Callback Hell)](#callback-chaining-callback-hell)
   - [Promise Chaining](#promise-chaining)
-- [Callback Functions in JavaScript](#-callback-functions-in-javascript)
-  - [Difference Between process.nextTick() and setImmediate()](#difference-between-processnexttick-and-setimmediate)
+- [Callback Functions in JavaScript](#callback-functions-in-javascript)
+  - [Difference Between `process.nextTick()` and `setImmediate()` (Node.js)](#difference-between-processnexttick-and-setimmediate-nodejs)
   - [Issues with Callbacks](#issues-with-callbacks)
-- [Map vs Filter vs Reduce](#-map-vs-filter-vs-reduce)
-- [Event Loop in JavaScript](#-event-loop-in-javascript)
+- [Map vs Filter vs Reduce](#map-vs-filter-vs-reduce)
+- [Event Loop in JavaScript](#event-loop-in-javascript)
   - [Why The Event Loop Exists](#why-the-event-loop-exists)
-  - [Queue Priority & Execution Order](#queue-priority--execution-order)
-- [Promises](#-promises)
-  - [Promise States & Terminology](#promise-states--terminology)
+  - [Queue Priority and Execution Order](#queue-priority-and-execution-order)
+- [Promises](#promises)
+  - [Promise States and Terminology](#promise-states-and-terminology)
   - [Promise.all](#1-promiseall)
   - [Promise.allSettled](#2-promiseallsettled)
   - [Promise.race](#3-promiserace)
   - [Promise.any](#4-promiseany)
   - [Race Conditions](#5-race-conditions)
-- [Async / Await in JavaScript](#-async--await-in-javascript)
-  - [Understanding How Async/Await Works](#understanding-how-asyncawait-works)
+- [Async / Await in JavaScript](#async-await-in-javascript)
+  - [Key Concepts](#key-concepts)
   - [Difference between Async/Await and Promise Chaining](#difference-between-asyncawait-and-promise-chaining)
   - [Test Cases: Sequential Execution with Await](#test-cases-sequential-execution-with-await)
 
@@ -641,7 +641,7 @@ The **Event Loop** is a core engine mechanism that enables non-blocking, asynchr
 ### Why The Event Loop Exists
 JavaScript is single-threaded, meaning it can only execute one task at a time. The Event Loop helps offload heavy operations (like timers, network requests, or database queries) to the browser APIs or the OS and brings back their callbacks when done, keeping the interface responsive.
 
-### Queue Priority & Execution Order
+### Queue Priority and Execution Order
 When the Call Stack is empty, the Event Loop processes queues in the following order:
 1. **Call Stack**: Currently executing code.
 2. **`process.nextTick()`** (Node.js specific): Run immediately after the current operation.
@@ -655,7 +655,7 @@ When the Call Stack is empty, the Event Loop processes queues in the following o
 
 A **Promise** is an object representing the eventual completion or failure of an asynchronous operation. It acts as a placeholder for a value that is not yet available.
 
-### Promise States & Terminology
+### Promise States and Terminology
 
 Understanding the differences between Promise states, events, and actions is essential to master asynchronous JavaScript.
 
