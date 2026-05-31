@@ -6,13 +6,13 @@ A curated, comprehensive guide covering essential web server architectures and h
 
 ## 📋 Table of Contents
 
-- [📁 How do you handle large file data efficiently in Node.js?](#how-do-you-handle-large-file-data-efficiently-in-nodejs)
-- [🛡️ What security measures do you implement in a Node.js application?](#what-security-measures-do-you-implement-in-a-nodejs-application)
-- [👥 How do you handle concurrent users in a Node.js application?](#how-do-you-handle-concurrent-users-in-a-nodejs-application)
+- [How do you handle large file data efficiently in Node.js?](#how-do-you-handle-large-file-data-efficiently-in-nodejs)
+- [What security measures do you implement in a Node.js application?](#what-security-measures-do-you-implement-in-a-nodejs-application)
+- [How do you handle concurrent users in a Node.js application?](#how-do-you-handle-concurrent-users-in-a-nodejs-application)
 
 ---
 
-## 📁 How do you handle large file data efficiently in Node.js?
+## How do you handle large file data efficiently in Node.js?
 
 ### Answer
 
@@ -127,7 +127,7 @@ readStream.pipe(writeStream);
 
 ---
 
-## 🛡️ What security measures do you implement in a Node.js application?
+## What security measures do you implement in a Node.js application?
 
 ### 1. Input Validation
 **Why:** To ensure incoming request parameters match strict formats before processing them, preventing buffer overflows, invalid values, or malicious code executions.
@@ -272,7 +272,7 @@ app.use(express.urlencoded({ limit: '10kb', extended: true }));
 
 ---
 
-## 👥 How do you handle concurrent users in a Node.js application?
+## How do you handle concurrent users in a Node.js application?
 
 ### Answer
 
