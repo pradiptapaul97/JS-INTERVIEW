@@ -1,11 +1,15 @@
-# 🚀 Node.js Advanced Interview Guide: Routing, Middleware, and Caching
+# 🚀 Node.js Advanced Interview Guide: Web Server & Core Mechanics
 
-A curated, comprehensive guide covering essential web server architectures for technical interviews: Routing, Middleware design, and Caching strategies, complete with deep-dive explanations, comparisons, and robust code examples.
+A curated, comprehensive guide covering essential web server architectures and high-performance file handling for technical interviews: Large File Processing, Routing, Middleware design, and Caching strategies, complete with deep-dive explanations, comparisons, and robust code examples.
 
 ---
 
 ## 📋 Table of Contents
 
+- [Handling Large File Data Efficiently](#handling-large-file-data-efficiently)
+  - [The Core Concept](#the-core-concept)
+  - [Recommended Method: stream.pipeline](#recommended-method-streampipeline)
+  - [🧪 Safe Pipeline Example](#-safe-pipeline-example)
 - [Routing in Node.js](#routing-in-nodejs)
   - [Definition and Mechanics](#definition-and-mechanics)
   - [Types of Routing](#types-of-routing)
@@ -19,6 +23,53 @@ A curated, comprehensive guide covering essential web server architectures for t
   - [Types of Caching](#types-of-caching)
   - [Cache Eviction Policies](#cache-eviction-policies)
   - [🧪 In-Memory TTL Cache Example](#-in-memory-ttl-cache-example)
+
+---
+
+## 📁 Handling Large File Data Efficiently
+
+### The Core Concept
+
+For processing large files, **never** load the entire file into memory using `fs.readFile()` as it can cause `heap out of memory` crashes. 
+
+Instead, use Node.js's built-in **`stream`** module to read and process the file in small, sequential chunks (typically 16KB by default). This maintains a tiny and stable memory footprint (around 20MB–30MB), regardless of whether the file is 100MB or 100GB.
+
+---
+
+### Recommended Method: `stream.pipeline`
+
+While the old `.pipe()` method handles backpressure, it does not automatically clean up resources or propagate errors. The modern, recommended approach is **`stream.pipeline`** from the built-in `stream` module.
+
+It guarantees:
+1. **Backpressure management:** Automatically balances speed differences between reading and writing.
+2. **Safe error propagation:** Forwards any stream failure to a single, unified callback.
+3. **Automatic resource cleanup:** Destroys and closes all underlying stream handles (like open file descriptors) if an error occurs.
+
+---
+
+### 🧪 Safe Pipeline Example
+
+The following code reads a source file chunk-by-chunk, Gzip-compresses it on the fly, and writes the compressed output to a new file safely:
+
+```javascript
+const fs = require('fs');
+const zlib = require('zlib');
+const { pipeline } = require('stream');
+
+// Define our streams
+const source = fs.createReadStream('input.txt');
+const gzip = zlib.createGzip();
+const destination = fs.createWriteStream('input.txt.gz');
+
+// Execute a safe, backpressure-aware pipeline
+pipeline(source, gzip, destination, (err) => {
+  if (err) {
+    console.error('🔥 Pipeline failed safely:', err.message);
+  } else {
+    console.log('✅ File processed and compressed successfully with minimal memory footprint!');
+  }
+});
+```
 
 ---
 
