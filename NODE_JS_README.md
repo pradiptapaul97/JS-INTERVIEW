@@ -11,6 +11,7 @@ A curated, comprehensive guide covering essential web server architectures and h
 - [How do you handle concurrent users in a Node.js application?](#how-do-you-handle-concurrent-users-in-a-nodejs-application)
 - [Cluster vs. Worker Threads vs. Child Process](#cluster-vs-worker-threads-vs-child-process)
 - [What is a Router in Node.js?](#what-is-a-router-in-nodejs)
+- [What is Middleware in Node.js?](#what-is-middleware-in-nodejs)
 
 ---
 
@@ -597,4 +598,73 @@ const userRouter = require("./routes/userRoutes");
 app.use("/users", userRouter);
 
 app.listen(3000);
+```
+
+---
+
+## What is Middleware in Node.js?
+
+### Answer
+
+**Middleware** is a function that executes **in the middle** of the request-response cycle. It acts as an interceptor or filter situated between the incoming raw request and the final route handler (controller).
+
+```
+Incoming Request ──► [ Middleware ] ──► [ Route Handler ] ──► Response Out
+```
+
+It has the signature `(req, res, next)` and can:
+1. Execute any logic (e.g., logging, validation).
+2. Mutate the `req` or `res` objects (e.g., adding user details to `req.user`).
+3. End the request-response cycle early (e.g., throwing a `401 Unauthorized` if validation fails).
+4. Hand off execution to the next function in line by calling `next()`.
+
+---
+
+### The 5 Core Types of Middleware (with Short Examples)
+
+#### 1. Application-level Middleware
+Bound directly to the app instance. It runs on **every incoming request** across the application.
+```javascript
+app.use((req, res, next) => {
+  console.log(`[LOG]: ${req.method} ${req.url}`);
+  next(); // Passes control to the next middleware
+});
+```
+
+#### 2. Router-level Middleware
+Bound to a specific router instance. It only executes for **routes associated with that router**.
+```javascript
+const router = express.Router();
+
+router.use((req, res, next) => {
+  if (!req.isAdmin) return res.status(403).send("Forbidden");
+  next();
+});
+```
+
+#### 3. Error-handling Middleware
+Specialized middleware designed for centralized error catching. It **must** accept **4 arguments** `(err, req, res, next)` instead of 3.
+```javascript
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something went wrong!");
+});
+```
+
+#### 4. Built-in Middleware
+Standard parser/static handlers packaged directly inside the Express framework.
+```javascript
+app.use(express.json()); // Parses incoming JSON payloads on req.body
+app.use(express.static("public")); // Serves static HTML/CSS files
+```
+
+#### 5. Third-party Middleware
+Pre-packaged middleware installed via npm to add robust cross-cutting capabilities.
+```javascript
+const cors = require("cors");
+const helmet = require("helmet");
+
+app.use(cors());   // Enables CORS requests
+app.use(helmet()); // Sets protective security HTTP headers
+```
 ```
