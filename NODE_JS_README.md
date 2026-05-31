@@ -12,6 +12,8 @@ A curated, comprehensive guide covering essential web server architectures and h
 - [Cluster vs. Worker Threads vs. Child Process](#cluster-vs-worker-threads-vs-child-process)
 - [What is a Router in Node.js?](#what-is-a-router-in-nodejs)
 - [What is Middleware in Node.js?](#what-is-middleware-in-nodejs)
+- [How many ways can Class B use Class A's function?](#how-many-ways-can-class-b-use-class-as-function)
+- [What will we do if the server gets 502 Bad Gateway?](#what-will-we-do-if-the-server-gets-502-bad-gateway)
 
 ---
 
@@ -667,4 +669,207 @@ const helmet = require("helmet");
 app.use(cors());   // Enables CORS requests
 app.use(helmet()); // Sets protective security HTTP headers
 ```
+
+---
+
+## How many ways can Class B use Class A's function?
+
+### Answer
+
+In JavaScript and Object-Oriented Programming (OOP), there are **seven distinct patterns** that allow Class B to access or execute a function defined in Class A. 
+
+---
+
+### The Main 4 Types
+
+These represent the core structural design patterns of software engineering:
+
+#### 1. Inheritance (`extends`)
+* **Concept:** Class B extends Class A (IS-A relationship). Class B inherits all prototype methods from Class A and can invoke them directly using `this` or override them with `super`.
+* **🧪 Short Example:**
+```javascript
+class A {
+  greet() { return "Hello from A"; }
+}
+
+class B extends A {
+  sayHello() {
+    return this.greet(); // Accessible via inheritance
+  }
+}
+```
+
+#### 2. Composition (HAS-A Relationship)
+* **Concept:** Class B contains and manages an instance of Class A internally. Instead of inheriting A's entire API, B delegates specific work to Class A's instance.
+* **🧪 Short Example:**
+```javascript
+class A {
+  greet() { return "Hello from A"; }
+}
+
+class B {
+  constructor() {
+    this.instanceA = new A(); // Composition
+  }
+  sayHello() {
+    return this.instanceA.greet();
+  }
+}
+```
+
+#### 3. Dependency Injection (DI)
+* **Concept:** Class B does not create Class A internally. Instead, an instance of Class A is **passed (injected)** into B's constructor or method from the outside, promoting loose coupling and making testing trivial.
+* **🧪 Short Example:**
+```javascript
+class A {
+  greet() { return "Hello from A"; }
+}
+
+class B {
+  constructor(serviceA) {
+    this.serviceA = serviceA; // Injected dependency
+  }
+  sayHello() {
+    return this.serviceA.greet();
+  }
+}
+
+const b = new B(new A()); // Instantiated externally
+```
+
+#### 4. Static Methods
+* **Concept:** Class A defines helper methods using the `static` keyword. Class B can invoke these functions directly on the class constructor name without instantiating either class.
+* **🧪 Short Example:**
+```javascript
+class A {
+  static greet() { return "Hello from A"; }
+}
+
+class B {
+  sayHello() {
+    return A.greet(); // Called directly on the Class namespace
+  }
+}
+```
+
+---
+
+### Other 3 JavaScript-Specific Patterns
+
+These patterns leverage JavaScript's highly dynamic prototype chain and module ecosystem:
+
+#### 5. Prototype Assignment
+* **Concept:** Manually linking the prototypes of two constructor functions to share functions without using the modern class `extends` syntax.
+```javascript
+function A() {}
+A.prototype.greet = function() { return "Hello from A"; };
+
+function B() {}
+B.prototype = Object.create(A.prototype); // Share prototype chain
+B.prototype.constructor = B;
+```
+
+#### 6. Mixins
+* **Concept:** Copying specific methods from A's prototype directly into B's prototype using object assignment. This achieves multi-class composition (simulating multiple inheritance).
+```javascript
+const A = {
+  greet() { return "Hello from A"; }
+};
+
+class B {}
+Object.assign(B.prototype, A); // Mixin A's methods into B's prototype
+```
+
+#### 7. Utility / Module Import
+* **Concept:** Exporting Class A (or a singleton instance of A) from a distinct file module and requiring/importing it inside Class B's file.
+```javascript
+// fileA.js
+class A {
+  greet() { return "Hello from A"; }
+}
+module.exports = new A(); // Exporting Singleton
+
+// fileB.js
+const instanceA = require("./fileA");
+class B {
+  sayHello() {
+    return instanceA.greet();
+  }
+}
+```
+
+---
+
+## What will we do if the server gets 502 Bad Gateway?
+
+### Answer
+
+A **502 Bad Gateway** is an HTTP status code indicating that an edge server, reverse proxy, or load balancer (e.g., **Nginx**, **Apache**, **AWS ALB**, or **Cloudflare**) acted as a gateway and received an **invalid or empty response** from the upstream application server (our **Node.js process**).
+
+```
+User ──► [ Edge Proxy / Nginx ] ──❌ Connection Refused / Timeout ❌──► [ Upstream Node.js ]
+```
+
+---
+
+### Root Causes in a Node.js Environment
+
+1. **The Node.js Process is Dead:** The application crashed due to an uncaught exception, a syntax error, or a V8 out-of-memory (OOM) error, and Nginx is attempting to proxy requests to a port with no active listener.
+2. **Event Loop Blocking (Timeout):** A synchronous CPU-intensive calculation is running on the main thread, blocking the event loop. The proxy server health check or request times out before Node.js can reply.
+3. **Overloaded Request Queue:** The Node.js application is overwhelmed with concurrent requests, filling up the OS socket queue and leading to dropped connections.
+4. **Port / Hostname Misconfiguration:** The proxy configuration is routing traffic to the wrong internal port (e.g., Nginx looks at `127.0.0.1:3000` but Node.js is listening on `:8080`).
+
+---
+
+### Step-by-Step Production Diagnostics & Fixes
+
+When a 502 occurs, I follow this structured production investigation plan:
+
+#### Step 1: Check Upstream Process Health
+Verify if the Node.js process is active or crashed:
+- **Using PM2:** Run `pm2 list` or `pm2 status` to check if the app is online or constantly rebooting.
+- **Using systemctl:** Run `systemctl status node-app` to inspect the system service.
+- **Action:** If the process is dead, start it immediately (`pm2 start app.js` or `npm start`).
+
+#### Step 2: Analyze Logs (Proxy vs. Application)
+- **Check Reverse Proxy Logs:** Inspect `/var/log/nginx/error.log` to identify the socket connection error:
+  - `111: Connection refused` indicates the Node.js process is completely down or listening on the wrong port.
+  - `110: Connection timed out` indicates the process is alive but taking too long to respond (Event Loop blocked or slow queries).
+- **Check Node.js Application Logs:** Read Winston logs or `pm2 logs` to catch critical stack traces like:
+  - `uncaughtException` or `unhandledRejection`.
+  - `Fatal Error: JavaScript heap out of memory`.
+
+#### Step 3: Implement Process Auto-Restart (Self-Healing)
+Never run a production Node.js script raw with `node index.js`. Use process managers or containerization:
+- **Process Manager (PM2):** PM2 automatically restarts the process on a crash instantly.
+- **Docker / Kubernetes:** Configure container restart policies (`restart: always` or K8s liveness/readiness probes) to automatically kill and replace unhealthy instances.
+
+#### Step 4: Setup Clustering and Load Balancing
+Avoid running a single instance of a Node.js process on a server:
+- Run **multiple clustered instances** matching CPU cores using the `cluster` module or `pm2 start app.js -i max`.
+- Configure Nginx with an **upstream group** to distribute requests. If one instance crashes, Nginx bypasses it and routes to a healthy sibling instantly with zero downtime:
+```nginx
+# nginx.conf
+upstream node_cluster {
+    server 127.0.0.1:3000;
+    server 127.0.0.1:3001;
+    server 127.0.0.1:3002;
+    keepalive 64;
+}
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://node_cluster;
+        proxy_next_upstream error timeout http_502; # Failover on 502
+    }
+}
+```
+
+#### Step 5: Protect the Event Loop from Timeouts
+- Offload CPU-heavy calculations to **Worker Threads** or **Background Message Queues** (e.g. BullMQ) to ensure the Event Loop remains free to quickly respond to the reverse proxy health checks.
+- Adjust reverse proxy read/connect timeouts if dealing with slow streaming requests:
+```nginx
+proxy_connect_timeout 60s;
+proxy_read_timeout 120s;
 ```
