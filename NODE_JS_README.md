@@ -1,6 +1,20 @@
-# How do you handle large file data efficiently in Node.js?
+# 🚀 Node.js Advanced Interview Guide
 
-## Answer
+A curated, comprehensive guide covering essential web server architectures and high-performance file handling for technical interviews.
+
+---
+
+## 📋 Table of Contents
+
+- [📁 How do you handle large file data efficiently in Node.js?](#how-do-you-handle-large-file-data-efficiently-in-nodejs)
+- [🛡️ What security measures do you implement in a Node.js application?](#what-security-measures-do-you-implement-in-a-nodejs-application)
+- [👥 How do you handle concurrent users in a Node.js application?](#how-do-you-handle-concurrent-users-in-a-nodejs-application)
+
+---
+
+## 📁 How do you handle large file data efficiently in Node.js?
+
+### Answer
 
 When dealing with large files in Node.js, I avoid using `fs.readFile()` because it loads the entire file into memory before processing it. For very large files, this can cause high memory consumption or even crash the application.
 
@@ -8,7 +22,7 @@ Instead, I use **Streams**, which process data in smaller chunks. Streams are me
 
 ---
 
-## Bad Approach
+### Bad Approach
 
 ```javascript
 const fs = require("fs");
@@ -18,7 +32,7 @@ fs.readFile("large-file.csv", "utf8", (err, data) => {
 });
 ```
 
-### Problem
+#### Problem
 ```
 1 GB file
     ↓
@@ -31,7 +45,7 @@ If multiple users upload large files simultaneously, memory usage can become ver
 
 ---
 
-## Good Approach: Streams
+### Good Approach: Streams
 
 ```javascript
 const fs = require("fs");
@@ -49,7 +63,7 @@ readStream.on("end", () => {
 });
 ```
 
-### Flow
+#### Flow
 ```
 1 GB file
     ↓
@@ -64,9 +78,9 @@ Memory remains almost constant regardless of file size.
 
 ---
 
-## Real-World Example: File Upload
+### Real-World Example: File Upload
 
-### Instead of:
+#### Instead of:
 
 ```javascript
 app.post("/upload", (req, res) => {
@@ -74,7 +88,7 @@ app.post("/upload", (req, res) => {
 });
 ```
 
-### Use:
+#### Use:
 
 ```javascript
 const fs = require("fs");
@@ -94,7 +108,7 @@ This streams the uploaded file directly to disk.
 
 ---
 
-## Copying Large Files Efficiently
+### Copying Large Files Efficiently
 
 ```javascript
 const fs = require("fs");
@@ -105,7 +119,7 @@ const writeStream = fs.createWriteStream("destination.zip");
 readStream.pipe(writeStream);
 ```
 
-### Benefits:
+#### Benefits:
 
 - **Low memory usage**
 - **Faster processing**
@@ -254,6 +268,7 @@ app.use(express.json({ limit: '10kb' }));
 
 // Restrict URL-encoded payload size
 app.use(express.urlencoded({ limit: '10kb', extended: true }));
+```
 
 ---
 
@@ -396,5 +411,3 @@ In a production e-commerce application, a concurrent scaling pipeline is structu
 ```
 
 This multi-layered architecture can gracefully handle massive traffic spikes with zero downtime.
-
-```
