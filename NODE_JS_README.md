@@ -14,6 +14,7 @@ A curated, comprehensive guide covering essential web server architectures and h
 - [What is Middleware in Node.js?](#what-is-middleware-in-nodejs)
 - [How many ways can Class B use Class A's function?](#how-many-ways-can-class-b-use-class-as-function)
 - [What will we do if the server gets 502 Bad Gateway?](#what-will-we-do-if-the-server-gets-502-bad-gateway)
+- [What is Rate Limiting in Node.js?](#what-is-rate-limiting-in-nodejs)
 
 ---
 
@@ -890,4 +891,96 @@ server {
 ```nginx
 proxy_connect_timeout 60s;
 proxy_read_timeout 120s;
+```
+
+---
+
+## What is Rate Limiting in Node.js?
+
+### Answer
+
+**Rate Limiting** is a defensive design pattern used to restrict the number of requests a client (identified by IP address, User ID, or API token) can make to a server within a defined window of time.
+
+---
+
+### 🛑 Which issue brought it into the picture?
+
+In Node.js, the main thread is single-threaded. If a malicious user or bot sends hundreds of requests per second (e.g., brute-forcing password logins, scraping data, or launching Denial of Service attacks), it consumes CPU, database connection pools, and sockets. 
+
+Without protection, the entire application slows down or crashes, denying service to legitimate users.
+
+---
+
+### 💡 The problem it solves
+
+- **Prevents Brute-Force Attacks:** Restricts rapid, automated attempts to guess user passwords or API keys.
+- **Mitigates DoS/DDoS Attacks:** Drops traffic spikes at the entry gate before they hit expensive database queries.
+- **Controls API Abuse:** Enforces fair-use limits and prevents scrapers from pulling massive amounts of resource data.
+- **Saves Cost:** Lessens compute power required on cloud servers.
+
+If a client exceeds their limit, the server immediately drops the request with an HTTP **`429 Too Many Requests`** status code.
+
+---
+
+### 🧪 Simple Example: Using the standard `express-rate-limit`
+
+In production, the most robust way to implement rate limiting on a specific endpoint is using specialized middleware:
+
+```javascript
+const express = require("express");
+const rateLimit = require("express-rate-limit");
+const app = express();
+
+// 1. Define rate limit rules: Max 5 requests per 1 minute
+const loginLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 5,                  // Limit each IP to 5 requests per window
+  message: "Too many login attempts from this IP, please try again after a minute.",
+  statusCode: 429          // Too Many Requests
+});
+
+// 2. Apply rate limiting strictly on the login route
+app.post("/login", loginLimiter, (req, res) => {
+  res.send("Authentication success!");
+});
+
+app.listen(3000);
+```
+
+---
+
+### 🧠 Interview Bonus: How to write a basic custom rate-limiter
+If asked to build a simple rate-limiter from scratch in an interview without library packages, you can implement a **sliding window** or **token bucket** concept using a local JavaScript `Map`:
+
+```javascript
+const ipRequestsMap = new Map();
+
+function customRateLimiter(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const currentTime = Date.now();
+  const windowMs = 60 * 1000; // 1 minute
+  const maxLimit = 100;
+
+  if (!ipRequestsMap.has(ip)) {
+    ipRequestsMap.set(ip, []);
+  }
+
+  const requestTimestamps = ipRequestsMap.get(ip);
+
+  // Filter out timestamps that are outside the current 1-minute window
+  const freshTimestamps = requestTimestamps.filter(
+    (timestamp) => currentTime - timestamp < windowMs
+  );
+
+  if (freshTimestamps.length >= maxLimit) {
+    res.writeHead(429, { "Content-Type": "text/plain" });
+    return res.end("Too Many Requests. Custom Rate Limiter Active!");
+  }
+
+  // Record current request timestamp and save back
+  freshTimestamps.push(currentTime);
+  ipRequestsMap.set(ip, freshTimestamps);
+
+  next(); // Proceed to route handler
+}
 ```
