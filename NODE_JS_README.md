@@ -823,7 +823,25 @@ User ──► [ Edge Proxy / Nginx ] ──❌ Connection Refused / Timeout ❌
 
 ### Step-by-Step Production Diagnostics & Fixes
 
-When a 502 occurs, I follow this structured production investigation plan:
+When a 502 occurs, I follow this structured production diagnostic checklist:
+
+```
+502 Error
+    │
+    ├─► Is Node Running? (check process manager status)
+    │
+    ├─► Check Logs (PM2 application logs & reverse proxy error logs)
+    │
+    ├─► Check CPU/Memory (inspect for Out-Of-Memory or infinite event loop blocks)
+    │
+    ├─► Verify Port (confirm matching listening ports between Nginx/ALB and Node)
+    │
+    ├─► Verify Nginx/ALB Config (check server proxy_pass blocks & upstream definitions)
+    │
+    ├─► Verify Database (verify the connection pool is not exhausted or database choked)
+    │
+    └─► Check Traffic Spike (check for resource limits and auto-scaling constraints)
+```
 
 #### Step 1: Check Upstream Process Health
 Verify if the Node.js process is active or crashed:
