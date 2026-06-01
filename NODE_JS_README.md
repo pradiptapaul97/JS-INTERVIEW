@@ -15,6 +15,7 @@ A curated, comprehensive guide covering essential web server architectures and h
 - [How many ways can Class B use Class A's function?](#how-many-ways-can-class-b-use-class-as-function)
 - [What will we do if the server gets 502 Bad Gateway?](#what-will-we-do-if-the-server-gets-502-bad-gateway)
 - [What is Rate Limiting and Throttling in Node.js?](#what-is-rate-limiting-and-throttling-in-nodejs)
+- [How do you manipulate the thread pool size in Node.js?](#how-do-you-manipulate-the-thread-pool-size-in-nodejs)
 
 ---
 
@@ -972,3 +973,79 @@ app.get("/search", speedLimiter, (req, res) => {
 
 app.listen(3000);
 ```
+
+---
+
+## How do you manipulate the thread pool size in Node.js?
+
+### Answer
+
+In Node.js, asynchronous tasks are handled differently depending on their type:
+- **Network I/O** (e.g., HTTP requests, TCP sockets) is delegated directly to the operating system's non-blocking system calls (such as `epoll` on Linux, `kqueue` on macOS, or `IOCP` on Windows).
+- **File System, Cryptography, DNS, and Compression** operations are not naturally non-blocking at the OS level or lack consistent cross-platform support. Node.js delegates these blocking tasks to its underlying C++ library, **libuv**, which executes them in a **thread pool** in the background.
+
+By default, the libuv thread pool is initialized with a size of **4** threads. You can manipulate and increase this thread pool size to optimize performance for heavy file or cryptographic processing by setting the environment variable:
+
+```env
+UV_THREADPOOL_SIZE
+```
+
+---
+
+### Operations That Use the Thread Pool
+The thread pool is utilized by specific Node.js APIs:
+1. **File System (`fs`)**: All asynchronous file operations (e.g., `fs.readFile`, `fs.writeFile`, `fs.readdir`), excluding their synchronous equivalents.
+2. **Cryptography (`crypto`)**: CPU-bound encryption, hashing, and key derivation APIs (e.g., `crypto.pbkdf2`, `crypto.scrypt`, `crypto.randomBytes`).
+3. **Compression (`zlib`)**: Asynchronous compression and decompression (e.g., `zlib.gzip`, `zlib.unzip`).
+4. **DNS Lookup (`dns`)**: `dns.lookup()`, because it relies on the blocking system function `getaddrinfo()`.
+
+---
+
+### How to Set `UV_THREADPOOL_SIZE`
+
+#### 1. Globally / Via the Environment
+
+##### Linux & macOS (Terminal)
+Set the variable prefixing the run command:
+```bash
+UV_THREADPOOL_SIZE=8 node app.js
+```
+
+##### Windows (Command Prompt / CMD)
+```cmd
+set UV_THREADPOOL_SIZE=8&&node app.js
+```
+
+##### Windows (PowerShell)
+```powershell
+$env:UV_THREADPOOL_SIZE=8; node app.js
+```
+
+#### 2. Programmatically in JavaScript
+You can configure this directly inside your script, but you **MUST** do so at the very top of your entry file before any asynchronous modules are loaded or initialized:
+
+```javascript
+// This MUST be the first line of code!
+process.env.UV_THREADPOOL_SIZE = 8;
+
+const fs = require('fs');
+const crypto = require('crypto');
+
+// The thread pool is now initialized with 8 threads
+```
+
+> [!WARNING]
+> Setting `process.env.UV_THREADPOOL_SIZE` after importing standard asynchronous libraries or calling an asynchronous operation will have no effect because libuv creates the thread pool eagerly when the first asynchronous operation is invoked.
+
+---
+
+### Key Rules & Limitations
+
+1. **Size Limits**: The maximum supported size is **1024** threads. The minimum is **1**.
+2. **Context Switching Overhead**: Spawning more threads than CPU cores will not automatically make your application faster. If threads exceed available CPU cores, the OS spends extra resources swapping threads (context switching), which can actually degrade performance.
+3. **Optimal Size Formula**: A common rule of thumb for optimal throughput is to set the size to match the number of available CPU logical cores (or double it if the application is highly bound by file/network I/O latency):
+   ```javascript
+   const os = require('os');
+   process.env.UV_THREADPOOL_SIZE = os.cpus().length;
+   ```
+
